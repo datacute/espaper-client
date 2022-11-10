@@ -168,7 +168,7 @@ void startDeviceSleep(uint32_t sleepSeconds, uint32_t sleepUntilEpoch) {
     effectiveSleepSeconds = sleepUntilEpoch - now;
     // If 'now' is completely off in either direction, for whatever reason, the device would not sleep at all or sleep 
     // for far too long. It should be roughly the same value as 'sleepSeconds' provided by the server.
-    if (abs(sleepSeconds - effectiveSleepSeconds) > 600) {
+    if (abs((int32_t)(sleepSeconds - effectiveSleepSeconds)) > 600) {
       effectiveSleepSeconds = sleepSeconds;
     } 
   }
