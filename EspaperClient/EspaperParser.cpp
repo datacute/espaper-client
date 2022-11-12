@@ -331,7 +331,7 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
 
   }
 
-  if (!client->available() == 0) {
+  if (!(client->available() && client->connected())) {
     Serial.println("Client disconnected before body parsing");
   }
   Serial.println("Processing body");
@@ -377,6 +377,7 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
       file.close();
       client->stop();
       delete client;
+      Serial.println();
       Serial.printf("Downloaded file %s with size %d", fileName.c_str(), downloadedBytes);
       Serial.println();
       Serial.print("[HTTP] connection closed or file end.\n");
