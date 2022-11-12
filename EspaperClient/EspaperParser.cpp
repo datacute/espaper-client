@@ -357,7 +357,7 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
       uint8_t buff[128] = { 0 };
 
       if (chunkedResponse) {
-        Serial.println("Starting chunked resource download");
+        Serial.print("Starting chunked resource download");
       } else {
         Serial.println("Starting resource download");
       }
@@ -395,7 +395,7 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
                     buffOffset++;
                   } else {
                     // skip chunk extensions, look for end of line
-                    Serial.printf("Reading chunk of size %d\n", remainingChunkSize);
+                    Serial.printf("\nReading chunk of size %d\n", remainingChunkSize);
                     chunkReadingMode = 1;
                   }
                   break;
