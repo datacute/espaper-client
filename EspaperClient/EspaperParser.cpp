@@ -304,6 +304,9 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
   }
 
   long lastUpdate = millis();
+  bool chunkedResponse = false;
+  long remainingChunkSize = 0;
+  uint8_t chunkReadingMode = 0;
 
   while (client->available() || client->connected()) {
     String line = client->readStringUntil('\n');
@@ -311,6 +314,8 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
     line.toUpperCase();
     if (line.startsWith("HTTP/1.")) {
       response.httpCode = line.substring(9, line.indexOf(' ', 9)).toInt();
+    } else if (line.startsWith("TRANSFER-ENCODING:") && (line.indexOf("CHUNKED") > 0)) {
+      chunkedResponse = true;
     } else if (line.startsWith("X-ESPAPER-COMMAND: UPDATE")) {
       Serial.println("Server requests firmware update");
       response.httpCode = HTTP_INTERNAL_CODE_UPGRADE_CLIENT;
@@ -351,7 +356,11 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
       // create buffer for read
       uint8_t buff[128] = { 0 };
 
-      Serial.println("Starting resource download");
+      if (chunkedResponse) {
+        Serial.println("Starting chunked resource download");
+      } else {
+        Serial.println("Starting resource download");
+      }
       // read all data from server
 
       while (client->available() || client->connected()) {
@@ -361,13 +370,90 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
         if (size > 0) {
           // read up to 1024 byte
           int c = client->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
-          downloadedBytes += c;
 
-          file.write(buff, c);
-          file.flush();
-          Serial.print("#");
+          int buffOffset = 0;
+          int bytesToCopy = 0;
+          while (c > 0) {
+            if (chunkedResponse) {
+              uint8_t b = buff[buffOffset];
+              switch (chunkReadingMode) {
+                case 0: // expecting chunk size
+                  if ((b >= '0') && (b <= '9')) {
+                    remainingChunkSize *= 16;
+                    remainingChunkSize += b - '0';
+                    c--;
+                    buffOffset++;
+                  } else if ((b >= 'A') && (b <= 'F')) {
+                    remainingChunkSize *= 16;
+                    remainingChunkSize += b - 'A' + 10;
+                    c--;
+                    buffOffset++;
+                  } else if ((b >= 'a') && (b <= 'f')) {
+                    remainingChunkSize *= 16;
+                    remainingChunkSize += b - 'a' + 10;
+                    c--;
+                    buffOffset++;
+                  } else {
+                    // skip chunk extensions, look for end of line
+                    Serial.printf("Reading chunk of size %d\n", remainingChunkSize);
+                    chunkReadingMode = 1;
+                  }
+                  break;
+                case 1: // skip everything till /r
+                  c--;
+                  buffOffset++;
+                  if (b == '\r') {
+                    chunkReadingMode = 2;
+                  }
+                  break;
+                case 2: // skip everything till  /n
+                  c--;
+                  buffOffset++;
+                  if (b == '\n') {
+                    chunkReadingMode = 3;
+                  }
+                  break;
+                case 3: // read chunk data
+                  if (remainingChunkSize == 0) {
+                    chunkReadingMode = 4;
+                  } else {
+                    if (c < remainingChunkSize) {
+                      bytesToCopy = c;
+                    } else {
+                      bytesToCopy = remainingChunkSize;
+                    }
+                    remainingChunkSize -= bytesToCopy;
+                  }
+                  break;
+                case 4: // skip everything till /r
+                  c--;
+                  buffOffset++;
+                  if (b == '\r') {
+                    chunkReadingMode = 5;
+                  }
+                  break;
+                case 5: // skip everything till  /n
+                  c--;
+                  buffOffset++;
+                  if (b == '\n') {
+                    chunkReadingMode = 0;
+                  }
+                  break;
+              }
+            } else {
+              bytesToCopy = c;
+            }
+            if (bytesToCopy > 0) {
+              downloadedBytes += bytesToCopy;
+              file.write(buff + buffOffset, bytesToCopy);
+              file.flush();
+              Serial.print("#");
+              c -= bytesToCopy;
+              bytesToCopy = 0;
+            }
+          }
         }
-        if (millis() - lastUpdate > 500) {
+        if (!chunkedResponse && (millis() - lastUpdate > 500)) {
           lastUpdate = millis();
           Serial.println();
         }
