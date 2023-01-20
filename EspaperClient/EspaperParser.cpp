@@ -165,7 +165,7 @@ EspaperParser::ResourceResponse EspaperParser::getAndDrawScreen(String requestPa
     
     gfx->drawStringMaxWidth(halfWidth, 20, maxTextWidth, message);
   }
-  Serial.println(F("Writting image to screen"));
+  Serial.println(F("Writing image to screen"));
   gfx->commit();
   Serial.println(F("De-allocating frame buffer"));
   gfx->freeBuffer();
