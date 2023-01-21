@@ -457,6 +457,7 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
               file.flush();
               if (!chunkedResponse) Serial.print("#");
               c -= bytesToCopy;
+              buffOffset += bytesToCopy;
               bytesToCopy = 0;
             }
           }
