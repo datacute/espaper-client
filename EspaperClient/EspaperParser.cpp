@@ -370,6 +370,7 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
         if (size > 0) {
           // read up to 1024 byte
           int c = client->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+          /*
           if (chunkedResponse) {
                 Serial.printf("received %i bytes: ", c);
                 for (int k = 0; k < c; k++)
@@ -378,6 +379,7 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
                 }
                 Serial.println();
           }
+          */
 
           int buffOffset = 0;
           int bytesToCopy = 0;
