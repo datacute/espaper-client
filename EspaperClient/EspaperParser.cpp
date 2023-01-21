@@ -357,7 +357,7 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
       uint8_t buff[128] = { 0 };
 
       if (chunkedResponse) {
-        Serial.print("Starting chunked resource download");
+        Serial.println("Starting chunked resource download");
       } else {
         Serial.println("Starting resource download");
       }
@@ -370,6 +370,14 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
         if (size > 0) {
           // read up to 1024 byte
           int c = client->readBytes(buff, ((size > sizeof(buff)) ? sizeof(buff) : size));
+          if (chunkedResponse) {
+                Serial.printf("received %i bytes: ", c);
+                for (int k = 0; k < c; k++)
+                {
+                  Serial.printf("%02X", buff[k]);
+                }
+                Serial.println();
+          }
 
           int buffOffset = 0;
           int bytesToCopy = 0;
@@ -395,7 +403,7 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
                     buffOffset++;
                   } else {
                     // skip chunk extensions, look for end of line
-                    Serial.printf("\nReading chunk of size %d\n", remainingChunkSize);
+                    Serial.printf("Reading chunk of size %d\n", remainingChunkSize);
                     chunkReadingMode = 1;
                   }
                   break;
@@ -447,7 +455,7 @@ EspaperParser::ResourceResponse EspaperParser::downloadResource(Url url, String 
               downloadedBytes += bytesToCopy;
               file.write(buff + buffOffset, bytesToCopy);
               file.flush();
-              Serial.print("#");
+              if (!chunkedResponse) Serial.print("#");
               c -= bytesToCopy;
               bytesToCopy = 0;
             }
