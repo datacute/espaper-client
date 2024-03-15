@@ -97,14 +97,12 @@ bool initTime() {
   //#ifndef DEV_ENV
   Serial.print("NTP sync");
   String timezoneCode = getTimeZoneSettings();
-  configTime(0, 0, getNtpServer(0).c_str(), getNtpServer(1).c_str(), getNtpServer(2).c_str());
-  setenv("TZ", timezoneCode.c_str(), 0);
-  tzset();
+  uint32_t ntpStartMillis = millis();
+  configTime(timezoneCode.c_str(), "pool.ntp.org");
 
   // wait until NTP time was correctly syncronized
   uint8_t retryCounter = 0;
   time_t now;
-  uint32_t ntpStartMillis = millis();
   uint16_t ntpTimeoutMillis = NTP_SYNC_TIMEOUT_SECONDS * 1000;
   while((now = time(nullptr)) < NTP_MIN_VALID_EPOCH) {
     uint32_t runtimeMillis = millis() - ntpStartMillis;
@@ -113,12 +111,14 @@ bool initTime() {
       return false;
     }
     Serial.print(".");
+    /*
     if (retryCounter > 3) {
       Serial.println("Re-initializing NTP");
       configTime(0, 0, getNtpServer(0).c_str(), getNtpServer(1).c_str(), getNtpServer(2).c_str());
       retryCounter = 0;
     }
     retryCounter++;
+    */
     delay(300);
   }
   Serial.println();
